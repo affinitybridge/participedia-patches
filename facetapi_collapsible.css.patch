@@ -1,0 +1,30 @@
+diff --git a/facetapi_collapsible.css b/facetapi_collapsible.css
+index 446aff9..e018ed2 100644
+--- a/facetapi_collapsible.css
++++ b/facetapi_collapsible.css
+@@ -60,7 +60,6 @@ div.facetapi-collapsible ul.facetapi-collapsible .facetapi-facet a {
+ }
+ 
+ div.facetapi-collapsible ul.facetapi-collapsible .facetapi-facet a:hover {
+-  background: #DDD;
+   border-radius: 5px;
+   -moz-border-radius: 5px;
+   -webkit-border-radius: 5px;
+@@ -69,17 +68,13 @@ div.facetapi-collapsible ul.facetapi-collapsible .facetapi-facet a:hover {
+ }
+ 
+ div.facetapi-collapsible ul.facetapi-collapsible a.facetapi-active {
+-  background: #BBB;
+   border-radius: 5px;
+   -moz-border-radius: 5px;
+   -webkit-border-radius: 5px;
+-  color: #FFF;
+   padding-top: 1px;
+ }
+ 
+ div.facetapi-collapsible ul.facetapi-collapsible a.facetapi-active:hover {
+-  background: #AAA;
+-  color: #FFF;
+   text-decoration: none;
+ }
+ 

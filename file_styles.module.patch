@@ -1,0 +1,49 @@
+diff --git a/contrib/file_styles/file_styles.module b/contrib/file_styles/file_styles.module
+index 778423d..fd991ee 100644
+--- contrib/file_styles/file_styles.module
++++ contrib/file_styles/file_styles.module
+@@ -30,7 +30,7 @@ function file_styles_styles_register() {
+  */
+ function file_styles_styles_filter($object, $element = NULL) {
+   // Ensure we're working against the fully loaded file object.
+-  $file = file_styles_uri_to_object($object->uri, TRUE);
++  $file = !empty($object->file) ? $object->file : file_styles_uri_to_object($object->uri, TRUE);
+ 
+   // Allow other modules to define their own file styles.
+   // In general, they'll most likely want to check against the mimetype.
+@@ -46,7 +46,7 @@ function file_styles_styles_filter($object, $element = NULL) {
+   // Now check the part of the mimetype before the slash.
+   // Note that we can't use strstr($haystack, $needle, $before_needle)
+   // < PHP 5.3, so we need a work-around.
+-  $filter = file_styles_strstr($object->filemime, '/', TRUE);
++  $filter = file_styles_strstr($file->filemime, '/', TRUE);
+   if (isset($containers['containers'][$filter])) {
+     return $filter;
+   }
+diff --git a/contrib/file_styles/includes/styles/FileStyles.inc b/contrib/file_styles/includes/styles/FileStyles.inc
+index fca0602..ebd277f 100644
+--- contrib/file_styles/includes/styles/FileStyles.inc
++++ contrib/file_styles/includes/styles/FileStyles.inc
+@@ -230,6 +230,15 @@ class FileStyles extends StylesDefault {
+   }
+ 
+   /**
++   * Override the getObject() method to account for media fields that store
++   * their data in a sub-property rather than the field itself.
++   */
++  function getObject() {
++    $object = $this->get('object');
++    return !empty($object->file) ? $object->file : $object;
++  }
++
++  /**
+    * Override the render function to always display a thumbnail in the wysiwyg.
+    */
+   public function render($reset = FALSE) {
+@@ -243,4 +252,4 @@ class FileStyles extends StylesDefault {
+     return parent::render($reset);
+   }
+ 
+-}
+\ No newline at end of file
++}

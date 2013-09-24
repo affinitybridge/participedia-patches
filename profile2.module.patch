@@ -1,0 +1,48 @@
+diff --git a/profile2.module b/profile2.module
+index 691e68d..7250cf2 100644
+--- a/profile2.module
++++ b/profile2.module
+@@ -93,6 +93,32 @@ function profile2_entity_info() {
+   return $return;
+ }
+ 
++
++/**
++ * Implements hook_entity_info_alter().
++ *
++ * Use this hook to specify profile bundles to avoid a recursion, as loading
++ * the profile types needs the entity info too.
++ */
++function profile2_entity_info_alter(&$entity_info) {
++  foreach (profile2_get_types() as $type => $info) {
++    $entity_info['profile2']['bundles'][$type] = array(
++      'label' => $info->label,
++      'admin' => array(
++        'path' => 'admin/structure/profiles/manage/%profile2_type',
++        'real path' => 'admin/structure/profiles/manage/' . $type,
++        'bundle argument' => 4,
++        'access arguments' => array('administer profiles'),
++      ),
++    );
++  }
++  
++  foreach ($entity_info['user']['view modes'] as $mode => $this_mode) {
++    $entity_info['profile2']['view modes'][$mode] = $this_mode;
++  }
++}
++
++
+ /**
+  * Menu argument loader; Load a profile type by string.
+  *
+@@ -332,7 +358,9 @@ function profile2_user_view($account, $view_mode, $langcode) {
+           '#title' => $profile->label,
+           '#prefix' => '<a id="profile-' . $profile->type . '"></a>',
+         );
+-        $account->content['profile_' . $type]['view'] = $profile->view('account');
++        // Replacing 'account' with $view_mode variable
++        // $account->content['profile_' . $type]['view'] = $profile->view('account');
++        $account->content['profile_' . $type]['view'] = $profile->view($view_mode);
+       }
+     }
+   }

@@ -1,0 +1,155 @@
+diff --git a/includes/media.browser.inc b/includes/media.browser.inc
+index 811df7b..8f15c93 100644
+--- includes/media.browser.inc
++++ includes/media.browser.inc
+@@ -71,7 +71,9 @@ function media_browser($selected = NULL) {
+ 
+     // If this is a "ajax" style tab, add the href, otherwise an id.
+     $href = isset($plugin['#callback']) ? $plugin['#callback'] : "#media-tab-$key";
+-    $tabs[] = "<a href='$href'><span>{$plugin['#title']}</span></a>";
++    if (isset($plugin['#title'])) {
++      $tabs[] = "<a href='$href'><span>{$plugin['#title']}</span></a>";
++    }
+ 
+     // Create a div for each tab's content.
+     $plugin['#prefix'] = <<<EOS
+@@ -194,7 +196,7 @@ function media_media_browser_plugin_info() {
+     '#weight' => 10,
+   );
+ 
+-  if (user_access('administer media') || user_access('edit media')) {
++  if (user_access('administer media') || user_access('upload media')) {
+     $plugins['upload'] = array(
+       '#weight' => -10,
+      );
+@@ -203,7 +205,7 @@ function media_media_browser_plugin_info() {
+ }
+ 
+ /**
+- * Implementaion of hook_media_browser_plugin_view().
++ * Implements hook_media_browser_plugin_view().
+  */
+ function media_media_browser_plugin_view($plugin_name, $params) {
+   $path = drupal_get_path('module', 'media');
+@@ -240,27 +242,29 @@ function media_media_browser_plugin_view($plugin_name, $params) {
+       );
+       break;
+     case 'library':
+-      return array(
+-        '#title' => t('Library'),
+-        '#attached' => array(
+-          'js' => array(
+-            $path . '/js/plugins/media.library.js',
+-          ),
+-          'css' => array(
+-            //@todo: should move this.
+-            $path . '/js/plugins/media.library.css',
+-          ),
+-        ),
+-        '#settings' => array(
+-          'viewMode' => 'thumbnails',
+-          'getMediaUrl' => url('media/browser/list'),
+-          'types' => $types,
+-          'multiselect' => $multiselect,
+-        // We should probably change this to load dynamically when requested
+-        // via the JS file.
+-        ),
+-        '#markup' => '<div id="container"><div id="scrollbox"><ul id="media-browser-library-list" class="media-list-thumbnails"></ul><div id="status"></div></div></div>',
+-      );
++      if (user_access('administer media') || user_access('view media browser library')) {
++        return array(
++          '#title' => t('Library'),
++          '#attached' => array(
++            'js' => array(
++              $path . '/js/plugins/media.library.js',
++            ),
++              'css' => array(
++              //@todo: should move this.
++              $path . '/js/plugins/media.library.css',
++            ),
++          ),
++          '#settings' => array(
++            'viewMode' => 'thumbnails',
++            'getMediaUrl' => url('media/browser/list'),
++            'types' => $types,
++            'multiselect' => $multiselect,
++            // We should probably change this to load dynamically when requested
++            // via the JS file.
++          ),
++          '#markup' => '<div id="container"><div id="scrollbox"><ul id="media-browser-library-list" class="media-list-thumbnails"></ul><div id="status"></div></div></div>',
++        );
++      }
+     break;
+   }
+ 
+diff --git a/includes/media.fields.inc b/includes/media.fields.inc
+index 36959ba..e68c56e 100644
+--- includes/media.fields.inc
++++ includes/media.fields.inc
+@@ -217,9 +217,8 @@ function media_field_widget_settings_form($field, $instance) {
+ function media_field_widget_form(&$form, &$form_state, $field, $instance, $langcode, $items, $delta, $element) {
+   $widget_settings = $instance['widget']['settings'];
+ 
+-  $permission = user_access('edit media');
++  $permission = user_access('edit media') || user_access('upload media');
+   if (!$permission) {
+-    // @todo: show the default file upload field.
+     return;
+   }
+ 
+diff --git a/media.module b/media.module
+index b6caf7e..46ca62f 100644
+--- media.module
++++ media.module
+@@ -207,7 +207,7 @@ function media_menu() {
+     'page callback' => 'media_page_edit',
+     'page arguments'  => array(1),
+     'access callback' => 'media_access',
+-    'access arguments' => array('edit'),
++    'access arguments' => array('edit', 1),
+     'weight' => 0,
+     'type' => MENU_LOCAL_TASK,
+     'context' => MENU_CONTEXT_PAGE | MENU_CONTEXT_INLINE,
+@@ -285,10 +285,22 @@ function media_permission() {
+       'title' => t('View media'),
+       'description' => t('View all media files.'), // @TODO better description
+     ),
++    'view media browser library' => array(
++      'title' => t('View media browser library'),
++      'description' => t('View media browser library.'),
++    ),
++    'upload media' => array(
++      'title' => t('Upload media'),
++      'description' => t('Upload media files.'),
++    ),
+     'edit media' => array(
+       'title' => t('Edit media'),
+       'description' => t('Edit all media files.'), // @TODO better description
+     ),
++    'edit own media' => array(
++      'title' => t('Edit own media'),
++      'description' => t('Edit own media files.'),
++    ),
+   );
+ }
+ 
+@@ -551,8 +563,17 @@ function media_multi_load($fids) {
+ /**
+  * Access callback for media assets.
+  */
+-function media_access($op) {
+-  return (user_access('administer media') || user_access($op . ' media'));
++function media_access($op, $media = NULL) {
++  global $user;
++
++  if (user_access('administer media') || user_access($op . ' media')) {
++    return TRUE;
++  }
++  elseif ($media && $user->uid == $media->uid && user_access($op . ' own media')) {
++    return TRUE;
++  }
++
++  return FALSE;
+ }
+ 
+ /**
